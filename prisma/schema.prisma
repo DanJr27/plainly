@@ -1,13 +1,44 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
-generator client {
-  provider = "prisma-client"
-  output   = "../app/generated/prisma"
-}
-
 datasource db {
   provider = "postgresql"
+  // Keep this empty for Prisma 7—the URL is handled by prisma.config.ts
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id     String   @id @default(cuid())
+  email  String   @unique
+  name   String?
+  emails Email[]  // This connects back to the Email model
+}
+
+model Email {
+  id        String   @id @default(cuid())
+  messageId String   @unique // The unique ID from Gmail
+  subject   String?
+  from      String
+  body      String
+  receivedAt DateTime @default(now())
+  
+  // Relationship: Each email belongs to one user
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  // Relationship: An email can have one automation result
+  automation Automation?
+}
+
+model Automation {
+  id        String   @id @default(cuid())
+  status    String   // e.g., "PENDING", "PROCESSING", "COMPLETED", "FAILED"
+  intent    String?  // What the AI thought the email was about
+  category  String?  // e.g., "Refund", "Inquiry", "Spam"
+  replySent Boolean  @default(false)
+  error     String?  // To track why something failed
+
+  // Relationship: Connects back to the specific email
+  emailId   String   @unique
+  email     Email    @relation(fields: [emailId], references: [id])
 }
